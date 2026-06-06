@@ -1,0 +1,154 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="头文件\imgui-sfml">
+      <UniqueIdentifier>{d7778dab-c597-4421-bf26-2c78b0ef33da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\imgui">
+      <UniqueIdentifier>{63c049cf-9259-4700-9055-fd7ba9d8941b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\imgui-sfm">
+      <UniqueIdentifier>{4d8d24f3-2aee-4953-bd5e-acd23d4423b3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\imgui">
+      <UniqueIdentifier>{d56dba14-4553-4d52-9e1f-ee1fc7e6558a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\..\桌面互通\压缩文件\C++\解压后\BarnesHutTree-main\BarnesHutTree-main\BarnesHutTree.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\桌面互通\压缩文件\C++\解压后\BarnesHutTree-main\BarnesHutTree-main\ofVec2f.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\桌面互通\压缩文件\C++\解压后\imgui-sfml-3.0\imgui-sfml-3.0\imgui-SFML.h">
+      <Filter>头文件\imgui-sfml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\桌面互通\压缩文件\C++\解压后\imgui-sfml-3.0\imgui-sfml-3.0\imconfig-SFML.h">
+      <Filter>头文件\imgui-sfml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\桌面互通\压缩文件\C++\解压后\imgui-sfml-3.0\imgui-1.91.9-Docking\imgui-1.91.9\imgui.h">
+      <Filter>头文件\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\桌面互通\压缩文件\C++\解压后\imgui-sfml-3.0\imgui-1.91.9-Docking\imgui-1.91.9\imconfig.h">
+      <Filter>头文件\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\桌面互通\压缩文件\C++\解压后\imgui-sfml-3.0\imgui-1.91.9-Docking\imgui-1.91.9\imstb_textedit.h">
+      <Filter>头文件\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\桌面互通\压缩文件\C++\解压后\imgui-sfml-3.0\imgui-1.91.9-Docking\imgui-1.91.9\imstb_truetype.h">
+      <Filter>头文件\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\桌面互通\压缩文件\C++\解压后\imgui-sfml-3.0\imgui-1.91.9-Docking\imgui-1.91.9\imstb_rectpack.h">
+      <Filter>头文件\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="include\MainUI.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="include\M_Application.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="include\fileTools.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PropertySystem.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="include\textInputTool.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="include\MainDraw.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="include\LsSimpleDraw\Canvas.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="include\LsSimpleDraw\SimpleDraw.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="include\LsSimpleDraw\LsSimpleDraw.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="include\LsSimpleDraw\RatioView.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Log\LogSystem.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="include\dataSavingHandle.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="include\ThemeManager.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="SimulaterMain.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\桌面互通\压缩文件\C++\解压后\imgui-sfml-3.0\imgui-sfml-3.0\imgui-SFML.cpp">
+      <Filter>源文件\imgui-sfm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\桌面互通\压缩文件\C++\解压后\imgui-sfml-3.0\imgui-1.91.9-Docking\imgui-1.91.9\imgui_demo.cpp">
+      <Filter>源文件\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\桌面互通\压缩文件\C++\解压后\imgui-sfml-3.0\imgui-1.91.9-Docking\imgui-1.91.9\imgui_draw.cpp">
+      <Filter>源文件\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\桌面互通\压缩文件\C++\解压后\imgui-sfml-3.0\imgui-1.91.9-Docking\imgui-1.91.9\imgui_tables.cpp">
+      <Filter>源文件\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\桌面互通\压缩文件\C++\解压后\imgui-sfml-3.0\imgui-1.91.9-Docking\imgui-1.91.9\imgui_widgets.cpp">
+      <Filter>源文件\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\桌面互通\压缩文件\C++\解压后\imgui-sfml-3.0\imgui-1.91.9-Docking\imgui-1.91.9\imgui.cpp">
+      <Filter>源文件\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="include\MainUI.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="include\M_Application.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="include\MainDraw.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="include\Log\LogSystem.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="include\dataSavingHandle.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="GravitySimulater.rc">
+      <Filter>资源文件</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="WC.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="WC128.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="WC32.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+  </ItemGroup>
+</Project>
