@@ -1,6 +1,7 @@
 # 沃C黑板
 - it just a blackboard
 - 功能不够丰富,所以凑合着用.
+- GravitySimulaer这个名称的出现说明这个项目是走歪路的
 
 ## 这个项目使用了
 - SFML3.0.1
