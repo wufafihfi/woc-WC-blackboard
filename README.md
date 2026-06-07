@@ -8,3 +8,11 @@
 - imgui-sfml-3.0
 - IMGUI-1.91.9-DOCKING
 - jsoncpp-1.9.6
+
+## 以希沃的图标为基础进行创作的WC图标
+
+![以希沃的图标为基础进行创作的WC图标](picture/WC.ico)
+
+## 小图标
+
+![小图标](picture/WC32.ico)
