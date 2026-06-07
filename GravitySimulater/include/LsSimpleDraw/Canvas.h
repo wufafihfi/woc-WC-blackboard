@@ -6,6 +6,8 @@
 
 class Canvas {
 private:
+    bool hasCreated = false;
+
     sf::RenderTexture texture;
     std::optional<sf::Sprite> sprite;
     sf::Color clearColor = sf::Color::Black;
@@ -15,6 +17,15 @@ private:
 
 public:
     Canvas(unsigned int width, unsigned int height) {
+        create(width, height);
+        hasCreated = true;
+    }
+
+    // 如果已经调用了构造函数,那么此函数会失效
+    void create(unsigned int width, unsigned int height) {
+        if (hasCreated == true) {
+            return;
+        }
         sf::ContextSettings settings;
         settings.antiAliasingLevel = 8;
         if (!texture.resize({ width, height })) {
@@ -40,6 +51,7 @@ public:
     // 绘制到窗口
     void renderToWindow(sf::RenderWindow& window) {
         if (!sprite.has_value()) return;
+        sprite->setTexture(texture.getTexture());
         sprite->setPosition(m_position);
         window.draw(*sprite);
     }
@@ -75,5 +87,9 @@ public:
 
     sf::Vector2f getPosition() {
         return m_position;
+    }
+
+    void SaveToFile(const std::string& filename) {
+        texture.getTexture().copyToImage().saveToFile(filename);
     }
 };

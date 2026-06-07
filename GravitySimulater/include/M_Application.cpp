@@ -10,8 +10,8 @@ Application::Application() {
 }
 
 Application::~Application() {
-    ImGui::SFML::Shutdown();
     SaveConfig();
+    ImGui::SFML::Shutdown();
 }
 
 void Application::InitializeProperties() {
@@ -49,18 +49,19 @@ void Application::InitializeProperties() {
     m_appProperties.AddProperty("MainUIdata", M_Property::Property("themeID", "样式预设", 0));
 
     m_appProperties.AddGroup("MainDrawData");
+    m_appProperties.AddProperty("MainDrawData", M_Property::Property("CanvasSize_int", "画布大小", std::vector<float>{ 2560.0f, 1440.0f}));
     m_appProperties.AddProperty("MainDrawData", M_Property::Property("backGroundColor", "背景色", std::vector<float>{ 10.0f, 30.0f, 10.0f, 255.0f }));
     m_appProperties.AddProperty("MainDrawData", M_Property::Property("ToolType", "工具类型", 0));
     m_appProperties.AddProperty("MainDrawData", M_Property::Property("isCanvasClear", "画布清空标志", false));
     m_appProperties.AddProperty("MainDrawData", M_Property::Property("isHorizontal", "横纵布局", false));
-    // 画笔颜色
     m_appProperties.AddProperty("MainDrawData", M_Property::Property("BrushColor", "画笔颜色", std::vector<float>{ 255.0f,255.0f,255.0f,255.0f }));
-    // 画笔粗细
     m_appProperties.AddProperty("MainDrawData", M_Property::Property("BrushThickness", "画笔粗细", 10.0f));
-    // 橡皮大小
     m_appProperties.AddProperty("MainDrawData", M_Property::Property("EraserSize", "橡皮大小", 100.0f));
-    // 界面缩放
     m_appProperties.AddProperty("MainDrawData", M_Property::Property("scaleSpeed", "画布缩放速度", 0.1f));
+    m_appProperties.AddProperty("MainDrawData", M_Property::Property("undo_Flag", "撤销标志", false));
+    m_appProperties.AddProperty("MainDrawData", M_Property::Property("redo_Flag", "恢复标志", false));
+    m_appProperties.AddProperty("MainDrawData", M_Property::Property("canvasSave_Flag", "画布保存标志", false));
+    m_appProperties.AddProperty("MainDrawData", M_Property::Property("canvasSave_Path", "画布保存路径", (getExecutablePath() / "savedCanvas" / "canvas.png").u8string()));
 }
 
 void Application::ProcessEvents() {
@@ -68,7 +69,7 @@ void Application::ProcessEvents() {
         ImGui::SFML::ProcessEvent(*m_window, *event);
 
         // 事件传入模块
-        m_mainDraw.HandleEvent(*event);
+        m_mainDraw->HandleEvent(*event);
 
         if (event->is<sf::Event::Closed>()) {
             m_window->close();
@@ -185,6 +186,11 @@ void Application::Run() {
     LOG_INFO(u8"字体读取成功 Font loaded OK");
 
     // 样式定义####################################################################
+    // 模块创建
+    m_mainUI = std::make_unique<MainUI>();
+    std::vector<float> canvasSize = m_appProperties.GetValue<std::vector<float>>("MainDrawData", "CanvasSize_int");
+    m_mainDraw = std::make_unique<MainDraw>(canvasSize);
+    // 模块创建
 
     while (m_window->isOpen()) {
         float deltaTime = m_clock.restart().asSeconds();
@@ -206,7 +212,7 @@ void Application::Run() {
         // 创建全屏 DockSpace
         ImGui::DockSpaceOverViewport(0, nullptr, ImGuiDockNodeFlags_PassthruCentralNode);
         // UI绘制
-        m_mainUI.Render();
+        m_mainUI->Render();
 
         // 渲染
         std::vector<float> color = props.GetValue<std::vector<float>>("MainUIdata", "BackgroundColor");
@@ -216,7 +222,7 @@ void Application::Run() {
             static_cast<std::uint8_t>(color[2] * 255)
         ));
         //自定义绘图
-        m_mainDraw.Render();
+        m_mainDraw->Render();
         //imgui
         ImGui::SFML::Render(*m_window);
         m_window->display();

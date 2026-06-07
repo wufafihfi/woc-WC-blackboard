@@ -6,6 +6,18 @@
 #include "M_Application.h"
 #include "Log/LogSystem.h"
 
+MainDraw::MainDraw(std::vector<float> canvasSize) :
+    m_linesChanged(false),
+    mousePosition(0, 0)
+{
+    LOG_INFO(u8"画布创建 canvas creating");
+    m_canvas = std::make_unique<Canvas>(canvasSize[0], canvasSize[1]);
+    m_drawer = std::make_unique<SimpleDraw>(*m_canvas);
+    m_rview = std::make_unique<RatioView>(m_canvas->getSize());
+    LOG_INFO(u8"画布创建成功 canvas create OK");
+    saveToUndo();
+}
+
 void MainDraw::HandleEvent(const sf::Event& event) {
     if (!m_visible) return;
 
@@ -23,10 +35,43 @@ void MainDraw::HandleEvent(const sf::Event& event) {
     };
 
     if (const auto* mouseButton = event.getIf<sf::Event::MouseButtonPressed>()) {
-        if (toolType == 1) {
-            if (mouseButton->button == sf::Mouse::Button::Left) {
-                m_isLeftPressed = true;
+        if (mouseButton->button == sf::Mouse::Button::Left) {
+            m_isLeftPressed = true;
+
+            if (toolType == 1) {
+                // 画笔模式：记录起始点
+                m_clickStartPos = M_worldPositon - m_canvas->getPosition() + m_canvas->getSize() * 0.5f;
+                m_hasMoved = false;
+            }
+            else if (toolType == 2) {
+                // 橡皮模式：开始擦除前先保存当前状态
                 m_isDrawing = true;
+                sf::Vector2f mouseCanvas = M_worldPositon - m_canvas->getPosition() + m_canvas->getSize() * 0.5f;
+                m_lastDrawPos = mouseCanvas;
+
+                // 关键：先保存擦除前的状态
+                saveToUndo();
+
+                // 然后执行擦除
+                eraseLinesAt(mouseCanvas, props.GetValue<float>("MainDrawData", "EraserSize") / 2.0f);
+                m_linesChanged = false;  // 重置标志，因为已经保存了
+            }
+        }
+    }
+
+    // 鼠标移动 - 标记有移动
+    if (const auto* mouseMoved = event.getIf<sf::Event::MouseMoved>()) {
+        if (m_isLeftPressed && toolType == 1) {
+            m_hasMoved = true;
+        }
+    }
+
+    // 鼠标释放
+    if (const auto* mouseButton = event.getIf<sf::Event::MouseButtonReleased>()) {
+        if (mouseButton->button == sf::Mouse::Button::Left) {
+            // 处理单击画点（画笔模式下按下后没有移动）
+            if (toolType == 1 && !m_hasMoved && m_isLeftPressed) {
+                float brushThickness = props.GetValue<float>("MainDrawData", "BrushThickness");
                 std::vector<float> brushColorVer = props.GetValue<std::vector<float>>("MainDrawData", "BrushColor");
                 sf::Color brushColor(
                     static_cast<std::uint8_t>(brushColorVer[0]),
@@ -34,27 +79,25 @@ void MainDraw::HandleEvent(const sf::Event& event) {
                     static_cast<std::uint8_t>(brushColorVer[2]),
                     static_cast<std::uint8_t>(brushColorVer[3])
                 );
-                float brushThickness = props.GetValue<float>("MainDrawData", "BrushThickness");
-                sf::Vector2f mouseCanvas = M_worldPositon - m_canvas.getPosition() + m_canvas.getSize() * 0.5f;
-
-                m_lastDrawPos = mouseCanvas;
-                addLine({ mouseCanvas, mouseCanvas, brushColor, brushThickness });
+                addLine({ m_clickStartPos, m_clickStartPos, brushColor, brushThickness });
+                saveToUndo();  // 保存单击的点
+                m_linesChanged = false;
             }
-        }
-        else if (toolType == 2) {  // 橡皮模式
-            float eraserSize = props.GetValue<float>("MainDrawData", "EraserSize");
-            sf::Vector2f mouseCanvas = M_worldPositon - m_canvas.getPosition() + m_canvas.getSize() * 0.5f;
 
-            m_isDrawing = true;
-            m_lastDrawPos = mouseCanvas;
-
-            // 删除当前位置的线条
-            eraseLinesAt(mouseCanvas, eraserSize / 2.0f);
-        }
-    }
-    if (const auto* mouseButton = event.getIf<sf::Event::MouseButtonReleased>()) {
-        if (mouseButton->button == sf::Mouse::Button::Left) {
             m_isLeftPressed = false;
+            m_hasMoved = false;
+
+            // 画笔模式：笔画完成时保存（如果还没保存）
+            if (toolType == 1 && m_linesChanged) {
+                saveToUndo();
+                m_linesChanged = false;
+            }
+            // 橡皮模式：擦除完成时，如果还有未保存的更改，再保存一次
+            else if (toolType == 2 && m_linesChanged) {
+                saveToUndo();
+                m_linesChanged = false;
+            }
+
             m_isDrawing = false;
         }
     }
@@ -64,7 +107,7 @@ void MainDraw::HandleEvent(const sf::Event& event) {
         if (const auto* mouseMoved = event.getIf<sf::Event::MouseMoved>()) {
             if (m_isDragging) {
                 sf::Vector2f delta = M_worldPositon - m_lastMousePos;
-                m_canvas.setPosition(m_canvas.getPosition() + delta);
+                m_canvas->setPosition(m_canvas->getPosition() + delta);
                 m_lastMousePos = M_worldPositon;
             }
         }
@@ -83,12 +126,12 @@ void MainDraw::HandleEvent(const sf::Event& event) {
         // 缩放
         if (const auto& wheelEvent = event.getIf<sf::Event::MouseWheelScrolled>()) {
             if (wheelEvent && wheelEvent->wheel == sf::Mouse::Wheel::Vertical) {
-                float currentScale = m_rview.getScaleZoom();
+                float currentScale = m_rview->getScaleZoom();
                 float zoomFactor = (wheelEvent->delta > 0) ? (1.0f - scaleSpeed) : (1.0f + scaleSpeed);
                 float newScale = currentScale * zoomFactor;
                 if (newScale < scaleMin) newScale = scaleMin;
                 if (newScale > scaleMax) newScale = scaleMax;
-                m_rview.setScaleZoom(newScale);
+                m_rview->setScaleZoom(newScale);
             }
         }
     }
@@ -110,18 +153,23 @@ void MainDraw::Render() {
         m_isLeftPressed = false;
     }
 
+    int toolType = props.GetValue<int>("MainDrawData", "ToolType");
     scaleSpeed = props.GetValue<float>("MainDrawData", "scaleSpeed");
 
     if (props.GetValue<bool>("MainDrawData", "isCanvasClear")) {
         props.SetValue("MainDrawData", "isCanvasClear", false);
         clearCanvas();
     }
+    if (props.GetValue<bool>("MainDrawData", "canvasSave_Flag")) {
+        props.SetValue("MainDrawData", "canvasSave_Flag", false);
+        m_canvas->SaveToFile(props.GetValue<std::string>("MainDrawData", "canvasSave_Path"));
+    }
 
-    m_rview.applyTo(window);
+    m_rview->applyTo(window);
 
-    m_canvas.beginDraw();
+    m_canvas->beginDraw();
     std::vector<float> bkColorVer = props.GetValue<std::vector<float>>("MainDrawData", "backGroundColor");
-    m_drawer.clear(
+    m_drawer->clear(
         static_cast<std::uint8_t>(bkColorVer[0]),
         static_cast<std::uint8_t>(bkColorVer[1]),
         static_cast<std::uint8_t>(bkColorVer[2]),
@@ -129,19 +177,51 @@ void MainDraw::Render() {
     );
 
     // 画线
+    if (props.GetValue<bool>("MainDrawData", "undo_Flag"))
+    {
+        props.SetValue("MainDrawData", "undo_Flag", false);
+        undo();
+    }
+    if (props.GetValue<bool>("MainDrawData", "redo_Flag"))
+    {
+        props.SetValue("MainDrawData", "redo_Flag", false);
+        redo();
+    }
     if (m_needsUpdate) {
         rebuildVertexBuffer();
         m_needsUpdate = false;
     }
     if (!m_vertexBuffer.empty()) {
-        m_drawer.drawLinesFromVertices(m_vertexBuffer);
+        m_drawer->drawLinesFromVertices(m_vertexBuffer);
     }
     BB_DrawLine();
     //LOG_INFO_STREAM << u8"线条数:" << m_lines.size();
 
-    m_canvas.endDraw();
+    m_canvas->endDraw();
 
-    m_canvas.renderToWindow(window);
+    m_canvas->renderToWindow(window);
+
+    // 绘制光标指示器
+    static SimpleDraw drawer_window(window);
+    if (toolType == 2) {
+        float eraserSize = props.GetValue<float>("MainDrawData", "EraserSize");
+        drawer_window.setColor(200, 200, 200, 100);
+        drawer_window.fillCircle(M_worldPositon.x, M_worldPositon.y, eraserSize / 2.0f, 30);
+        drawer_window.setColor(255, 255, 255, 200);
+        drawer_window.circle(M_worldPositon.x, M_worldPositon.y, eraserSize / 2.0f);
+    }
+    else if (toolType == 1) {
+        std::vector<float> brushColorVer = props.GetValue<std::vector<float>>("MainDrawData", "BrushColor");
+        sf::Color brushColor(
+            static_cast<std::uint8_t>(brushColorVer[0]),
+            static_cast<std::uint8_t>(brushColorVer[1]),
+            static_cast<std::uint8_t>(brushColorVer[2]),
+            static_cast<std::uint8_t>(brushColorVer[3])
+        );
+        float brushThickness = props.GetValue<float>("MainDrawData", "BrushThickness");
+        drawer_window.setColor(brushColor);
+        drawer_window.fillCircle(M_worldPositon.x, M_worldPositon.y, brushThickness / 2.0f, 30);
+    }
 
     //drawDebug_View(window);
 }
@@ -153,7 +233,7 @@ void MainDraw::BB_DrawLine() {
 
     int toolType = props.GetValue<int>("MainDrawData", "ToolType");
 
-    sf::Vector2f mouseCanvas = M_worldPositon - m_canvas.getPosition() + m_canvas.getSize() * 0.5f;
+    sf::Vector2f mouseCanvas = M_worldPositon - m_canvas->getPosition() + m_canvas->getSize() * 0.5f;
 
     std::vector<float> brushColorVer = props.GetValue<std::vector<float>>("MainDrawData", "BrushColor");
     sf::Color brushColor(
@@ -173,77 +253,98 @@ void MainDraw::BB_DrawLine() {
             float brushThickness = props.GetValue<float>("MainDrawData", "BrushThickness");
 
             if (!m_isDrawing) {
+                if (m_undoStack.empty() || m_lines != m_undoStack.back()) {
+                    saveToUndo();
+                }
                 m_isDrawing = true;
                 m_lastDrawPos = mouseCanvas;
+                m_linesChanged = false;
             }
             else {
                 if (mouseCanvas != m_lastDrawPos) {
                     addLine({ m_lastDrawPos, mouseCanvas, brushColor, brushThickness });
                     m_lastDrawPos = mouseCanvas;
+                    m_linesChanged = true;
                 }
             }
         }
         else {
+            if (m_isDrawing && m_linesChanged) {
+                LOG_DEBUG_STREAM << "Mouse release - m_isDrawing - m_linesChanged: " << m_isDrawing
+                    << ", m_linesChanged: " << m_linesChanged
+                    << ", lines: " << m_lines.size();
+                saveToUndo();
+                m_linesChanged = false;
+            }
             m_isDrawing = false;
- 
         }
     }
-    else if (toolType == 2 && m_isDrawing) {  // 橡皮模式
-        float eraserSize = props.GetValue<float>("MainDrawData", "EraserSize");
-        // 线段插值删除
-        sf::Vector2f delta = mouseCanvas - m_lastDrawPos;
-        float distance = std::sqrt(delta.x * delta.x + delta.y * delta.y);
-        float step = eraserSize / 4.0f;
+    else if (toolType == 2) {  // 橡皮模式
+        bool isLeftPressed = m_isLeftPressed;
+        if (!isLeftPressed && m_hasFocus && !m_imguiActive) {
+            isLeftPressed = sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
+        }
 
-        if (distance > step) {
-            int steps = static_cast<int>(distance / step) + 1;
-            for (int i = 1; i <= steps; i++) {
-                float t = (float)i / steps;
-                sf::Vector2f interpPos = m_lastDrawPos + delta * t;
-                eraseLinesAt(interpPos, eraserSize / 2.0f);
+        if (!m_imguiActive && isLeftPressed && m_hasFocus) {
+            float eraserSize = props.GetValue<float>("MainDrawData", "EraserSize");
+
+            if (!m_isDrawing) {
+                // 开始擦除
+                m_isDrawing = true;
+                m_lastDrawPos = mouseCanvas;
+            }
+            else {
+                // 线段插值删除
+                sf::Vector2f delta = mouseCanvas - m_lastDrawPos;
+                float distance = std::sqrt(delta.x * delta.x + delta.y * delta.y);
+                float step = eraserSize / 4.0f;
+
+                if (distance > step) {
+                    int steps = static_cast<int>(distance / step) + 1;
+                    for (int i = 1; i <= steps; i++) {
+                        float t = (float)i / steps;
+                        sf::Vector2f interpPos = m_lastDrawPos + delta * t;
+                        eraseLinesAt(interpPos, eraserSize / 2.0f);
+                    }
+                }
+                else {
+                    eraseLinesAt(mouseCanvas, eraserSize / 2.0f);
+                }
+                m_lastDrawPos = mouseCanvas;
             }
         }
         else {
-            eraseLinesAt(mouseCanvas, eraserSize / 2.0f);
+            // 鼠标释放，完成擦除
+            if (m_isDrawing && m_linesChanged) {
+                saveToUndo();  // 保存擦除后的状态
+                m_linesChanged = false;
+            }
+            m_isDrawing = false;
         }
-
-        m_lastDrawPos = mouseCanvas;
-    }
-
-    if (toolType == 2) {  // 橡皮模式
-        float eraserSize = props.GetValue<float>("MainDrawData", "EraserSize");
-        m_drawer.setColor(200, 200, 200, 100);
-        m_drawer.fillCircle(mouseCanvas.x, mouseCanvas.y, eraserSize / 2.0f, 30);
-        m_drawer.setColor(255, 255, 255, 200);
-        m_drawer.circle(mouseCanvas.x, mouseCanvas.y, eraserSize / 2.0f);
-    }
-    else if (toolType == 1) {  // 画笔模式
-        float brushThickness = props.GetValue<float>("MainDrawData", "BrushThickness");
-        m_drawer.setColor(brushColor);
-        m_drawer.fillCircle(mouseCanvas.x, mouseCanvas.y, brushThickness / 2.0f, 30);
     }
 }
 void MainDraw::rebuildVertexBuffer() {
     m_vertexBuffer.clear();
-    m_vertexBuffer.reserve(m_lines.size() * 100);  // 增加预留空间
+    m_vertexBuffer.reserve(m_lines.size() * 100);
 
-    // 根据线条粗细动态调整精度
+    //LOG_DEBUG_STREAM << "Rebuilding vertex buffer for " << m_lines.size() << " lines";
+
     for (const auto& line : m_lines) {
-        int segments = 12;  // 基础精度
+        int segments = 12;
         if (line.thickness >= 10) {
-            segments = 24;  // 粗线需要更高精度
+            segments = 24;
         }
         else if (line.thickness >= 20) {
             segments = 32;
         }
 
-        m_drawer.roundedThickLineToVertices(
+        m_drawer->roundedThickLineToVertices(
             line.start.x, line.start.y,
             line.end.x, line.end.y,
             line.thickness, line.color,
             m_vertexBuffer,
-            segments,  // 圆的分段数
-            1          // 线条分段数
+            segments,
+            1
         );
     }
 }
@@ -282,16 +383,17 @@ void MainDraw::rebuildSpatialIndex() {
 void MainDraw::addLine(const DrawLine& line) {
     m_lines.push_back(line);
     m_needsUpdate = true;
+    m_linesChanged = true;
+    //LOG_DEBUG_STREAM << "addLine - lines: " << m_lines.size() << ", linesChanged: " << m_linesChanged;
 }
 // 清空画布
 void MainDraw::clearCanvas() {
+    if (m_lines.empty()) return;
+
+    saveToUndo();
     m_lines.clear();
     m_vertexBuffer.clear();
     m_needsUpdate = true;
-
-    m_canvas.beginDraw();
-    m_drawer.clear(100, 200, 100, 150);
-    m_canvas.endDraw();
 }
 // 检测线段与圆是否相交
 bool MainDraw::lineIntersectsCircle(const sf::Vector2f& p1, const sf::Vector2f& p2,
@@ -340,8 +442,9 @@ void MainDraw::eraseLinesAt(const sf::Vector2f& pos, float radius) {
     std::vector<bool> toDelete(m_lines.size(), false);
 
     for (int key : keysToCheck) {
-        if (m_spatialIndex.find(key) != m_spatialIndex.end()) {
-            for (int idx : m_spatialIndex[key]) {
+        auto it = m_spatialIndex.find(key);
+        if (it != m_spatialIndex.end()) {
+            for (int idx : it->second) {
                 if (idx >= 0 && idx < (int)m_lines.size() && !toDelete[idx]) {
                     const auto& line = m_lines[idx];
                     if (lineIntersectsCircle(line.start, line.end, pos, radius)) {
@@ -362,9 +465,83 @@ void MainDraw::eraseLinesAt(const sf::Vector2f& pos, float radius) {
     }
 
     if (anyDeleted) {
+        m_linesChanged = true;  // 标记有变化（关键：添加这行）
         m_needsUpdate = true;
-        rebuildSpatialIndex();  // 删除后重建索引
+        rebuildSpatialIndex();
     }
+}
+// 撤销恢复
+void MainDraw::finishStroke() {
+    if (m_linesChanged) {  // 需要添加标志
+        saveToUndo();
+        m_linesChanged = false;
+    }
+}
+void MainDraw::saveToUndo() {
+    LOG_DEBUG_STREAM << "=== saveToUndo CALLED ===";
+    LOG_DEBUG_STREAM << "Call stack? lines: " << m_lines.size();
+
+    m_undoStack.push_back(m_lines);
+
+    LOG_DEBUG_STREAM << "After push, stack size: " << m_undoStack.size();
+    for (size_t i = 0; i < m_undoStack.size(); i++) {
+        LOG_DEBUG_STREAM << "  [" << i << "] lines: " << m_undoStack[i].size();
+    }
+
+    while (m_undoStack.size() > m_maxUndoSteps) {
+        LOG_DEBUG_STREAM << "Erasing oldest, lines: " << m_undoStack.front().size();
+        m_undoStack.erase(m_undoStack.begin());
+    }
+
+    clearRedo();
+
+    LOG_DEBUG_STREAM << "=== saveToUndo END, stack size: " << m_undoStack.size() << " ===";
+}
+
+void MainDraw::undo() {
+    if (m_undoStack.empty()) {
+        LOG_DEBUG_STREAM << "Nothing to undo";
+        return;
+    }
+
+    // 保存当前状态到恢复栈
+    m_redoStack.push_back(m_lines);
+
+    // 从撤销栈恢复上一个状态
+    m_lines = m_undoStack.back();
+    m_undoStack.pop_back();
+
+    // 更新渲染 - 关键修复
+    m_needsUpdate = true;
+    rebuildSpatialIndex();  // 重建空间索引
+    m_linesChanged = false;  // 重置变化标志
+
+    LOG_DEBUG_STREAM << "Undo, lines: " << m_lines.size();
+}
+
+void MainDraw::redo() {
+    if (m_redoStack.empty()) {
+        LOG_DEBUG_STREAM << "Nothing to redo";
+        return;
+    }
+
+    // 保存当前状态到撤销栈
+    m_undoStack.push_back(m_lines);
+
+    // 从恢复栈恢复下一个状态
+    m_lines = m_redoStack.back();
+    m_redoStack.pop_back();
+
+    // 更新渲染 - 关键修复
+    m_needsUpdate = true;
+    rebuildSpatialIndex();  // 重建空间索引
+    m_linesChanged = false;  // 重置变化标志
+
+    LOG_DEBUG_STREAM << "Redo, lines: " << m_lines.size();
+}
+
+void MainDraw::clearRedo() {
+    m_redoStack.clear();
 }
 
 void MainDraw::drawDebug_View(sf::RenderWindow& window) {

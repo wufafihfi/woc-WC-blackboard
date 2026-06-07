@@ -63,6 +63,26 @@ void MainUI::Render() {
 
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu(u8"文件")) {
+            if (ImGui::BeginMenu(u8"画布")) {
+                // 保存画布
+                if (ImGui::MenuItem(u8"保存画布")) {
+                    handleCanvasSave();
+                }
+
+                // 画布另存为
+                if (ImGui::MenuItem(u8"画布另存为")) {
+                    handleCanvasSaveAs();
+                }
+
+                // 打开画布存储文件夹
+                if (ImGui::MenuItem(u8"打开画布存储文件夹")) {
+                    handleOpenSaveFolder();
+                }
+
+                ImGui::EndMenu();
+            }
+
+            ImGui::Text(u8"自动保存 - 每 %0.1f s一次", Application::Get().m_saveInterval);
             if (ImGui::MenuItem(u8"存档", u8"保存当前状态")) {
                 LOG_INFO(u8"保存 saved");
                 SaveConfig();
@@ -73,6 +93,7 @@ void MainUI::Render() {
             }
             ImGui::EndMenu();
         }
+
         // 界面使用特殊字体=========
         if (ImGui::BeginMenu(u8"界面")) {
             if (ImGui::Button(u8"重置")) {
@@ -196,6 +217,49 @@ void MainUI::Render() {
             ImGui::EndMenu();
         }
 
+        if (ImGui::BeginMenu(u8"功能")) {
+            if (ImGui::BeginMenu(u8"画布")) {
+                std::vector<float> canvasSize = props.GetValue<std::vector<float>>("MainDrawData", "CanvasSize_int");
+                static int canvasSize_X = canvasSize[0];
+                static int canvasSize_Y = canvasSize[1];
+                //::Text(u8"画布大小: %d x %d", (int)canvasSize[0], (int)canvasSize[1]);
+
+                ImGui::Text(u8"画布大小:");
+                ImGui::SetNextItemWidth(80.0f);
+                if (ImGui::DragInt("##CanvasWidth", &canvasSize_X, 10, 10, 10000, "%d")) {
+                    if (canvasSize_X > 10000)
+                        canvasSize_X = 10000;
+                    if (canvasSize_X < 10)
+                        canvasSize_X = 10;
+                };
+                ImGui::SameLine();
+                ImGui::Text(u8"x");
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(80.0f);
+                if (ImGui::DragInt("##CanvasHeight", &canvasSize_Y, 10, 10, 10000, "%d")) {
+                    if (canvasSize_Y > 10000)
+                        canvasSize_Y = 10000;
+                    if (canvasSize_Y < 10)
+                        canvasSize_Y = 10;
+                };
+                ImGui::SameLine();
+                ImGui::Text(u8"像素");
+                ImGui::TextColored(ImVec4(1, 0, 0, 1), u8"画布越大内存(显存)占用越大,太大可能导致崩溃");
+                ImGui::Text(u8"此设置将在下次启动后应用");
+
+                if (canvasSize_X != canvasSize[0] || canvasSize_Y != canvasSize[1]) {
+                    canvasSize[0] = canvasSize_X;
+                    canvasSize[1] = canvasSize_Y;
+                    props.SetValue("MainDrawData", "CanvasSize_int", canvasSize);
+
+                    SaveConfig();
+                }
+
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenu();
+        }
+
         ImGui::EndMainMenuBar();
     }
 
@@ -216,6 +280,10 @@ void MainUI::Render() {
 
     // 日志窗口
     SHOW_LOG_WINDOW(&showLogWindow);
+
+    // 渲染覆盖确认弹窗
+    renderOverwriteDialog();
+    renderSaveAsDialog();
 
     ImGui::PopFont();
 }
@@ -274,8 +342,7 @@ void DrawToolsWindow() {
 
         // 清空按钮进度条
         static float clear_count = 0;
-        if (ImGui::Button(u8"清空画布")) {
-        }
+        if (ImGui::Button(u8"清空画布"));
         if (ImGui::IsItemActive() && ImGui::IsItemHovered()) {
             clear_count += 0.05f;
             if (clear_count >= 3) {
@@ -302,6 +369,15 @@ void DrawToolsWindow() {
             ImVec2(cursor_pos.x + fill_width, cursor_pos.y + progress_height * 1.5f),
             IM_COL32(100, 200, 100, 255));
         ImGui::Dummy(ImVec2(progress_width, progress_height));
+
+        ImGui::SameLine();
+        if (ImGui::Button(u8"<撤销")) {
+            props.SetValue("MainDrawData", "undo_Flag", true);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(u8"重做>")) {
+            props.SetValue("MainDrawData", "redo_Flag", true);
+        }
 
         // 根据工具显示不同设置
         if (selected_tool == 0) {
@@ -445,6 +521,14 @@ void DrawToolsWindow() {
             if (clear_count < 0) clear_count = 0;
         }
 
+        if (ImGui::Button(u8"<撤销")) {
+            props.SetValue("MainDrawData", "undo_Flag", true);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(u8"重做>")) {
+            props.SetValue("MainDrawData", "redo_Flag", true);
+        }
+
         // 进度条
         float progress_width = ImGui::GetContentRegionAvail().x;
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
@@ -459,6 +543,8 @@ void DrawToolsWindow() {
             ImVec2(cursor_pos.x + fill_width, cursor_pos.y + 10),
             IM_COL32(100, 200, 100, 255));
         ImGui::Dummy(ImVec2(progress_width, 10));
+
+
 
         ImGui::Separator();
 
@@ -612,4 +698,255 @@ void StyleEditor(bool* isOpen) {
     }
 
     ImGui::End();
+}
+
+void MainUI::handleCanvasSave() {
+    auto& props = Application::Get().GetAppProperties();
+
+    LOG_INFO(u8"保存画布 canvas saved");
+
+    std::string savePath = props.GetValue<std::string>("MainDrawData", "canvasSave_Path");
+
+    // 如果没有保存过，生成默认路径
+    if (savePath.empty()) {
+        fs::path defaultPath = getExecutablePath() / "savedCanvas" / "canvas.png";
+        savePath = defaultPath.u8string();
+    }
+
+    // 检查文件是否存在
+    if (CheckFileExists(savePath)) {
+        m_showOverwriteDialog = true;
+        m_overwriteTempPath = savePath;
+    }
+    else {
+        props.SetValue("MainDrawData", "canvasSave_Flag", true);
+        props.SetValue("MainDrawData", "canvasSave_Path", savePath);
+    }
+}
+
+void MainUI::handleCanvasSaveAs() {
+    LOG_INFO(u8"画布另存为 canvas save as");
+
+    // 生成带时间戳的默认文件名
+    std::string defaultFilename = generateTimestampFilename(".png");
+    fs::path defaultDir = getExecutablePath() / "savedCanvas";
+
+    // 确保目录存在
+    if (!fs::exists(defaultDir)) {
+        fs::create_directories(defaultDir);
+    }
+
+    // 设置弹窗默认值
+    m_saveAsFileName = defaultFilename;
+    m_saveAsDirectory = defaultDir.u8string();
+    m_showSaveAsDialog = true;
+}
+
+void MainUI::handleOpenSaveFolder() {
+    LOG_INFO(u8"打开画布存储文件夹");
+
+    fs::path saveDir = getExecutablePath() / "savedCanvas";
+
+    // 确保目录存在
+    if (!fs::exists(saveDir)) {
+        fs::create_directories(saveDir);
+    }
+
+    OpenFolderInExplorer(saveDir.u8string());
+}
+
+void MainUI::renderSaveAsDialog() {
+    if (!m_showSaveAsDialog) {
+        return;
+    }
+
+    ImGui::OpenPopup(u8"另存为");
+
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_AlwaysAutoResize |
+        ImGuiWindowFlags_NoCollapse;
+
+    if (ImGui::BeginPopupModal(u8"另存为", nullptr, flags)) {
+        ImGui::Text(u8"保存画布到：");
+        ImGui::Separator();
+
+        // 目录输入
+        ImGui::Text(u8"目录路径：");
+        ImGui::PushItemWidth(350);
+
+        // 使用临时缓冲区
+        static char dirBuffer[512] = { 0 };
+        static char nameBuffer[256] = { 0 };
+
+        // 每次打开弹窗时更新缓冲区
+        static bool firstOpen = true;
+        if (firstOpen) {
+            strcpy_s(dirBuffer, m_saveAsDirectory.c_str());
+            strcpy_s(nameBuffer, m_saveAsFileName.c_str());
+            firstOpen = false;
+        }
+
+        if (ImGui::InputText(u8"##Directory", dirBuffer, sizeof(dirBuffer))) {
+            m_saveAsDirectory = dirBuffer;
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button(u8"重置为默认")) {
+            fs::path defaultDir = getExecutablePath() / "savedCanvas";
+            m_saveAsDirectory = defaultDir.string();  // 使用 string() 而不是 u8string()
+            strcpy_s(dirBuffer, m_saveAsDirectory.c_str());
+        }
+
+        // 文件名输入
+        ImGui::Text(u8"文件名：");
+        if (ImGui::InputText(u8"##Filename", nameBuffer, sizeof(nameBuffer))) {
+            m_saveAsFileName = nameBuffer;
+        }
+
+        //ImGui::TextColored(ImVec4(0.4f, 0.4f, 0.4f, 1.0f),
+            //u8"如果目录为空，将使用默认目录；如果文件名为空，将使用时间戳");
+
+        ImGui::Separator();
+
+        // 按钮
+        float buttonWidth = 100.0f;
+        float availWidth = ImGui::GetContentRegionAvail().x;
+        float buttonPos = (availWidth - buttonWidth * 2 - 10) * 0.5f;
+
+        ImGui::SetCursorPosX(buttonPos);
+
+        if (ImGui::Button(u8"保存", ImVec2(buttonWidth, 0))) {
+            auto& props = Application::Get().GetAppProperties();
+
+            // 处理目录
+            std::string finalDir = m_saveAsDirectory;
+            if (finalDir.empty()) {
+                fs::path defaultDir = getExecutablePath() / "savedCanvas";
+                finalDir = defaultDir.string();
+            }
+
+            // 处理文件名
+            std::string finalName = m_saveAsFileName;
+            if (finalName.empty()) {
+                finalName = generateTimestampFilename(".png");
+            }
+
+            // 确保有 .png 扩展名
+            if (finalName.find(".png") == std::string::npos) {
+                finalName += ".png";
+            }
+
+            // Windows: 使用宽字符串路径
+#ifdef _WIN32
+            // 将 UTF-8 转换为宽字符串
+            std::wstring wDir = Utf8ToWide(finalDir);
+            std::wstring wName = Utf8ToWide(finalName);
+            fs::path fullPath = fs::path(wDir) / wName;
+            std::string savePath = fullPath.string();
+#else
+            fs::path fullPath = fs::path(finalDir) / finalName;
+            std::string savePath = fullPath.u8string();
+#endif
+
+            // 检查文件是否已存在
+            bool fileExists = false;
+            try {
+                fileExists = fs::exists(fullPath);
+            }
+            catch (const std::exception& e) {
+                LOG_ERROR_STREAM << "检查文件存在时出错 Error while checking file existence: " << e.what();
+                fileExists = false;
+            }
+
+            if (fileExists) {
+                // 文件存在，显示覆盖确认
+                m_overwriteTempPath = savePath;
+                m_showOverwriteDialog = true;
+                m_showSaveAsDialog = false;
+                ImGui::CloseCurrentPopup();
+            }
+            else {
+                // 文件不存在，直接保存
+                try {
+                    if (!fs::exists(fullPath.parent_path())) {
+                        fs::create_directories(fullPath.parent_path());
+                    }
+                    props.SetValue("MainDrawData", "canvasSave_Flag", true);
+                    props.SetValue("MainDrawData", "canvasSave_Path", savePath);
+                }
+                catch (const std::exception& e) {
+                    LOG_ERROR_STREAM << "保存画布时出错: " << e.what();
+                }
+                m_showSaveAsDialog = false;
+                ImGui::CloseCurrentPopup();
+            }
+
+            firstOpen = true;
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button(u8"取消", ImVec2(buttonWidth, 0))) {
+            m_showSaveAsDialog = false;
+            ImGui::CloseCurrentPopup();
+            firstOpen = true;
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
+void MainUI::renderOverwriteDialog() {
+    if (!m_showOverwriteDialog) {
+        return;
+    }
+
+    std::string fileName = fs::path(m_overwriteTempPath).filename().u8string();
+
+    ImGui::OpenPopup(u8"文件已存在");
+
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_AlwaysAutoResize |
+        ImGuiWindowFlags_NoCollapse;
+
+    if (ImGui::BeginPopupModal(u8"文件已存在", nullptr, flags)) {
+        ImGui::Text(u8"文件已存在:");
+        ImGui::TextColored(ImVec4(0.4f, 0.4f, 0.4f, 1.0f), "%s", fileName.c_str());
+        ImGui::Text(u8"是否覆盖？");
+
+        ImGui::Separator();
+
+        float buttonWidth = 100.0f;
+        float availWidth = ImGui::GetContentRegionAvail().x;
+        float buttonPos = (availWidth - buttonWidth * 2 - 10) * 0.5f;
+
+        ImGui::SetCursorPosX(buttonPos);
+
+        if (ImGui::Button(u8"覆盖", ImVec2(buttonWidth, 0))) {
+            auto& props = Application::Get().GetAppProperties();
+            props.SetValue("MainDrawData", "canvasSave_Flag", true);
+            props.SetValue("MainDrawData", "canvasSave_Path", m_overwriteTempPath);
+            m_showOverwriteDialog = false;
+            m_overwriteTempPath.clear();
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button(u8"取消", ImVec2(buttonWidth, 0))) {
+            m_showOverwriteDialog = false;
+            m_overwriteTempPath.clear();
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
 }

@@ -21,4 +21,17 @@ public:
 
 private:
     bool m_visible = true;
+
+    void handleCanvasSave();
+    void handleCanvasSaveAs();
+    void handleOpenSaveFolder();
+    void renderOverwriteDialog();
+    void renderSaveAsDialog();
+    // ¸²¸ÇÈ·ÈÏµ¯´°×´Ì¬
+    bool m_showOverwriteDialog = false;
+    std::string m_overwriteTempPath;
+    // Áí´æÎªµ¯´°×´Ì¬
+    bool m_showSaveAsDialog = false;
+    std::string m_saveAsFileName;
+    std::string m_saveAsDirectory;
 };

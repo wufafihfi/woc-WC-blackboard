@@ -38,7 +38,7 @@ public:
 private:
     Application();
     ~Application();
-        
+
     void InitializeProperties();        // 初始化应用属性
     void ProcessEvents();               // 处理窗口事件
 
@@ -52,11 +52,13 @@ private:
     sf::Clock m_clock;
 
     // 模块
-    MainUI m_mainUI;
-    MainDraw m_mainDraw;
+    std::unique_ptr<MainUI> m_mainUI;
+    std::unique_ptr<MainDraw> m_mainDraw;
 
     // 自动保存
     float m_saveTimer = 0.0f;
-    float m_saveInterval = 20.0f;  // 30秒保存一次
+public:
+    float m_saveInterval = 20.0f;  // 20秒保存一次
+private:
     void autoSave(float deltaTime);
 };

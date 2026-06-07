@@ -289,6 +289,7 @@ inline bool fontLoadTool(std::string path, ImGuiIO& io, M_Property::PropertyCont
 }
 
 inline bool setFont(std::string DefaultFontPath, std::string path, float size = 16.0f) {
+    LOG_INFO_STREAM << u8"字体加载:";
     LOG_INFO_STREAM << u8"默认字体路径 Default font path: " << DefaultFontPath;
     LOG_INFO_STREAM << u8"默认字体路径长度 Default font path length: " << DefaultFontPath.length();
 
@@ -440,4 +441,39 @@ inline bool readJsonFile(const std::string& filename, Json::Value& root) {
     }
 
     return true;
+}
+
+// 生成带时间戳的文件名
+static std::string generateTimestampFilename(std::string extension) {
+    auto now = std::chrono::system_clock::now();
+    auto now_time_t = std::chrono::system_clock::to_time_t(now);
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+
+    std::stringstream ss;
+
+#ifdef _WIN32
+    struct tm buf;
+    localtime_s(&buf, &now_time_t);
+    ss << std::put_time(&buf, "%Y%m%d_%H%M%S");
+#else
+    struct tm buf;
+    localtime_r(&now_time_t, &buf);
+    ss << std::put_time(&buf, "%Y%m%d_%H%M%S");
+#endif
+
+    ss << "_" << std::setfill('0') << std::setw(3) << ms.count();
+    ss << extension;
+
+    return ss.str();
+}
+
+// 打开文件夹
+static void OpenFolderInExplorer(const std::string& path) {
+#ifdef _WIN32
+    std::wstring wpath(path.begin(), path.end());
+    ShellExecuteW(NULL, L"open", L"explorer", wpath.c_str(), NULL, SW_SHOW);
+#else
+    std::string command = "xdg-open \"" + path + "\"";
+    system(command.c_str());
+#endif
 }

@@ -46,6 +46,11 @@ void SaveConfig() {
     // MainDrawData 横纵布局
     ConfigData["MainDrawData_isHorizontal"] = props.GetValue<bool>("MainDrawData", "isHorizontal");
 
+    // MainDrawData 画布大小
+    std::vector<float> canvasSize = props.GetValue<std::vector<float>>("MainDrawData", "CanvasSize_int");
+    ConfigData["MainDrawData_CanvasSize_int"]["X"] = canvasSize[0];
+    ConfigData["MainDrawData_CanvasSize_int"]["Y"] = canvasSize[1];
+
     // 保存文件
     std::string path = (BasePath / "config" / "mainConfig.json").u8string();
     if (!saveJsonFile(path, ConfigData)) {
@@ -141,5 +146,23 @@ void LoadConfig() {
     // 读取 MainDrawData 横纵布局
     if (ConfigData.isMember("MainDrawData_isHorizontal")) {
         props.SetValue("MainDrawData", "isHorizontal", ConfigData["MainDrawData_isHorizontal"].asBool());
+    }
+
+    // 读取 MainDrawData 画布大小
+    if (ConfigData.isMember("MainDrawData_CanvasSize_int")) {
+        const auto& size = ConfigData["MainDrawData_CanvasSize_int"];
+        std::vector<float> canvasSize = {
+            size["X"].asFloat(),
+            size["Y"].asFloat()
+        };
+        if (canvasSize[0] > 10000)
+            canvasSize[0] = 10000;
+        if (canvasSize[0] < 10)
+            canvasSize[0] = 10;
+        if (canvasSize[1] > 10000)
+            canvasSize[1] = 10000;
+        if (canvasSize[1] < 10)
+            canvasSize[1] = 10;
+        props.SetValue("MainDrawData", "CanvasSize_int", canvasSize);
     }
 }

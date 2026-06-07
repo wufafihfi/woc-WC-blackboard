@@ -19,6 +19,17 @@ public:
         : m_logicSize(WH.x, WH.y), m_scale(1.0f, 1.0f), m_offset(0, 0), m_scaleZoom(1) {
     }
 
+    void reset(float logicWidth, float logicHeight) {
+        m_logicSize = sf::Vector2f(logicWidth, logicHeight);
+        m_scale = sf::Vector2f(1.0f, 1.0f);
+        m_offset = sf::Vector2f(0, 0);
+        m_scaleZoom = 1.0f;
+    }
+
+    void reset(const sf::Vector2f& wh) {
+        reset(wh.x, wh.y);
+    }
+
     void applyTo(sf::RenderTarget& window) {
         sf::Vector2u windowSize = window.getSize();
         float windowAspect = (float)windowSize.x / windowSize.y;
