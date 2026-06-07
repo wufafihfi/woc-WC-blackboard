@@ -17,7 +17,7 @@
   项目地址：https://github.com/open-source-parsers/jsoncpp
 
 - JsonCpp 和 SFML 3.0.1使用VCPKG集成
-- Dear ImGui 1.91.9 (Docking分支) 和 imgui-sfml 3.0在
+- Dear ImGui 1.91.9 (Docking分支) 和 imgui-sfml 3.0在Dependence文件夹中
 
 ## 以希沃的图标为基础进行创作的WC图标
 
