@@ -16,6 +16,9 @@
 - **JsonCpp 1.9.6** - 采用 MIT 许可证  
   项目地址：https://github.com/open-source-parsers/jsoncpp
 
+- JsonCpp 和 SFML 3.0.1使用VCPKG集成
+- Dear ImGui 1.91.9 (Docking分支) 和 imgui-sfml 3.0在
+
 ## 以希沃的图标为基础进行创作的WC图标
 
 ![以希沃的图标为基础进行创作的WC图标](picture/WC.ico)
