@@ -3,12 +3,7 @@
 - 功能不够丰富,所以凑合着用.
 - GravitySimulaer这个名称的出现说明这个项目是走歪路的
 
-## 这个项目使用了
-- SFML3.0.1
-- imgui-sfml-3.0
-- IMGUI-1.91.9-DOCKING
-- jsoncpp-1.9.6
-## 许可证
+## 此项目使用了一下开源库
 - **SFML 3.0.1** - 采用 zlib/libpng 许可证  
   官网：https://www.sfml-dev.org/
 
