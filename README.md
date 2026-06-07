@@ -2,7 +2,7 @@
 - it just a blackboard
 - 有的时候希沃启动太慢或者出问题可以暂时用这个代替(没人想吸粉笔灰)
 - 功能不够丰富,所以凑合着用.
-- GravitySimulaer这个名称的出现说明这个项目是走歪路的
+- GravitySimulaer这个名称的出现说明这个项目是走歪路的,就当积攒经验了
 
 ## 此项目使用了一下开源库
 - **SFML 3.0.1** - 采用 zlib/libpng 许可证  
