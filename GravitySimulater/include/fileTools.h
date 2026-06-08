@@ -470,7 +470,8 @@ static std::string generateTimestampFilename(std::string extension) {
 // 打开文件夹
 static void OpenFolderInExplorer(const std::string& path) {
 #ifdef _WIN32
-    std::wstring wpath(path.begin(), path.end());
+    // 正确转换 UTF-8 到 UTF-16 (Windows 宽字符)
+    std::wstring wpath = Utf8ToWide(path);
     ShellExecuteW(NULL, L"open", L"explorer", wpath.c_str(), NULL, SW_SHOW);
 #else
     std::string command = "xdg-open \"" + path + "\"";

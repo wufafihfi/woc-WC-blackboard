@@ -4,6 +4,10 @@
 #include <memory>
 #include <stdexcept>
 
+//###############Ñ§Ï°#################
+// ÔÄ - 5±é
+//####################################
+
 class Canvas {
 private:
     bool hasCreated = false;

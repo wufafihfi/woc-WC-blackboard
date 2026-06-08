@@ -154,7 +154,7 @@ void MainDraw::Render() {
     }
 
     int toolType = props.GetValue<int>("MainDrawData", "ToolType");
-    scaleSpeed = props.GetValue<float>("MainDrawData", "scaleSpeed");
+    scaleSpeed = props.GetValue<float>("MainDrawData", "scaleSpeed"); 
 
     if (props.GetValue<bool>("MainDrawData", "isCanvasClear")) {
         props.SetValue("MainDrawData", "isCanvasClear", false);
