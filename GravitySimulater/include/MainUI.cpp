@@ -288,6 +288,29 @@ void MainUI::Render() {
     ImGui::PopFont();
 }
 
+void M_setMouseCursor(int toolType) {
+    if(!ImGui::GetIO().WantCaptureMouse)
+    {
+        switch (toolType)
+        {
+        case 0:
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
+            break;
+
+        case 1:
+            ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+            break;
+
+        case 2:
+            ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+            break;
+
+        default:
+            break;
+        }
+    }
+}
+
 void DrawToolsWindow() {
     auto& props = Application::Get().GetAppProperties();
 
@@ -380,12 +403,18 @@ void DrawToolsWindow() {
         }
 
         // 根据工具显示不同设置
+        M_setMouseCursor(selected_tool);
+
         if (selected_tool == 0) {
             static float scaleSpeed = props.GetValue<float>("MainDrawData", "scaleSpeed");
             ImGui::PushItemWidth(150.0f);
             ImGui::SliderFloat(u8"画布缩放速度", &scaleSpeed, 0.1f, 5.0f, "%.1f");
             if (ImGui::IsItemDeactivatedAfterEdit()) {
                 props.SetValue("MainDrawData", "scaleSpeed", scaleSpeed);
+            }
+            ImGui::SameLine();
+            if (ImGui::Button(u8"重置")) {
+                props.SetValue("MainDrawData", "canvasTransformationReset_Flag", true);
             }
         }
 
@@ -556,6 +585,9 @@ void DrawToolsWindow() {
             ImGui::SliderFloat(u8"##scaleSpeed", &scaleSpeed, 0.1f, 5.0f, "%.1f");
             if (ImGui::IsItemDeactivatedAfterEdit()) {
                 props.SetValue("MainDrawData", "scaleSpeed", scaleSpeed);
+            }
+            if (ImGui::Button(u8"重置")) {
+                props.SetValue("MainDrawData", "canvasTransformationReset_Flag", true);
             }
         }
 

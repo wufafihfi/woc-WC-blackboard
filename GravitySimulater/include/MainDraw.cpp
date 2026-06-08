@@ -164,6 +164,11 @@ void MainDraw::Render() {
         props.SetValue("MainDrawData", "canvasSave_Flag", false);
         m_canvas->SaveToFile(props.GetValue<std::string>("MainDrawData", "canvasSave_Path"));
     }
+    if (props.GetValue<bool>("MainDrawData", "canvasTransformationReset_Flag")) {
+        props.SetValue("MainDrawData", "canvasTransformationReset_Flag", false);
+        m_canvas->setPosition(0, 0);
+        m_rview->setScaleZoom(1);
+    }
 
     m_rview->applyTo(window);
 
@@ -221,6 +226,11 @@ void MainDraw::Render() {
         float brushThickness = props.GetValue<float>("MainDrawData", "BrushThickness");
         drawer_window.setColor(brushColor);
         drawer_window.fillCircle(M_worldPositon.x, M_worldPositon.y, brushThickness / 2.0f, 30);
+        if(brushThickness <= 4)
+        {
+            drawer_window.setColor(255, 255, 255, 150);
+            drawer_window.circle(M_worldPositon.x, M_worldPositon.y, 2);
+        }
     }
 
     //drawDebug_View(window);
