@@ -49,6 +49,7 @@ void Application::InitializeProperties() {
     m_appProperties.AddProperty("MainUIdata", M_Property::Property("themeID", "样式预设", 0));
 
     m_appProperties.AddGroup("MainDrawData");
+    m_appProperties.AddProperty("MainDrawData", M_Property::Property("showCanvasDebug", "画布调试显示", false));
     m_appProperties.AddProperty("MainDrawData", M_Property::Property("CanvasSize_int", "画布大小", std::vector<float>{ 2560.0f, 1440.0f}));
     m_appProperties.AddProperty("MainDrawData", M_Property::Property("canvasTransformationReset_Flag", "画布变换重置标志", false));
     m_appProperties.AddProperty("MainDrawData", M_Property::Property("backGroundColor", "背景色", std::vector<float>{ 10.0f, 30.0f, 10.0f, 255.0f }));

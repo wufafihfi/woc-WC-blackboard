@@ -149,6 +149,23 @@ void MainDraw::Render() {
         m_isDragging = false;
         m_isLeftPressed = false;
     }
+    sf::Vector2 canvasPos = m_canvas->getPosition();
+    sf::Vector2 canvasSize = m_canvas->getSize();
+    if ((M_worldPositon.x < canvasPos.x - canvasSize.x * 0.5f ||
+        M_worldPositon.x > canvasPos.x + canvasSize.x * 0.5f ||
+        M_worldPositon.y < canvasPos.y - canvasSize.y * 0.5f ||
+        M_worldPositon.y > canvasPos.y + canvasSize.y * 0.5f) &&
+        (m_lastMousePos.x < canvasPos.x - canvasSize.x * 0.5f ||
+            m_lastMousePos.x > canvasPos.x + canvasSize.x * 0.5f ||
+            m_lastMousePos.y < canvasPos.y - canvasSize.y * 0.5f ||
+            m_lastMousePos.y > canvasPos.y + canvasSize.y * 0.5f)
+        ) {
+        m_outOfCanvas = true;
+    }
+    else
+    {
+        m_outOfCanvas = false;
+    }
 
     int toolType = props.GetValue<int>("MainDrawData", "ToolType");
     scaleSpeed = props.GetValue<float>("MainDrawData", "scaleSpeed"); 
@@ -182,11 +199,15 @@ void MainDraw::Render() {
         props.SetValue("MainDrawData", "redo_Flag", false);
         redo();
     }
+    std::vector<float> bkColorVer = props.GetValue<std::vector<float>>("MainDrawData", "backGroundColor");
+    static std::vector<float> bkColorVer_last = bkColorVer;
+    if (bkColorVer != bkColorVer_last) {
+        bkColorVer_last = bkColorVer;
+        m_needsUpdate = true;
+    }
     if (m_needsUpdate) {
         rebuildVertexBuffer();
         m_needsUpdate = false;
-        //}
-        std::vector<float> bkColorVer = props.GetValue<std::vector<float>>("MainDrawData", "backGroundColor");
         m_drawer->clear(
             static_cast<std::uint8_t>(bkColorVer[0]),
             static_cast<std::uint8_t>(bkColorVer[1]),
@@ -231,7 +252,10 @@ void MainDraw::Render() {
         }
     }
 
-    //drawDebug_View(window);
+    if(props.GetValue<bool>("MainDrawData", "showCanvasDebug"))
+    {
+        drawDebug_View(window);
+    }
 }
 
 //画线
@@ -256,12 +280,14 @@ void MainDraw::BB_DrawLine() {
         if (!isLeftPressed && m_hasFocus && !m_imguiActive) {
             isLeftPressed = sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
         }
+        if (!m_isDrawing) {
+            m_lastMousePos = M_worldPositon;
+        }
 
         if (!m_imguiActive && isLeftPressed && m_hasFocus) {
             float brushThickness = props.GetValue<float>("MainDrawData", "BrushThickness");
-
             if (!m_isDrawing) {
-                if (m_undoStack.empty() || m_lines != m_undoStack.back()) {
+                if ((m_undoStack.empty() || m_lines != m_undoStack.back())) {
                     saveToUndo();
                 }
                 m_isDrawing = true;
@@ -389,6 +415,8 @@ void MainDraw::rebuildSpatialIndex() {
 }
 // 添加线条时标记需要更新
 void MainDraw::addLine(const DrawLine& line) {
+    if (m_outOfCanvas) { return; }
+
     m_lines.push_back(line);
     m_needsUpdate = true;
     m_linesChanged = true;
@@ -489,6 +517,8 @@ void MainDraw::finishStroke() {
     }
 }
 void MainDraw::saveToUndo() {
+    if (m_outOfCanvas) { return; }
+
     LOG_DEBUG_STREAM << "=== saveToUndo CALLED ===";
     LOG_DEBUG_STREAM << "Call stack? lines: " << m_lines.size();
 
@@ -582,6 +612,20 @@ void MainDraw::drawDebug_View(sf::RenderWindow& window) {
     m2_drawer.thickLine(center.x - 10, bottom - 30, center.x, bottom, 10);
     m2_drawer.thickLine(center.x + 10, bottom - 30, center.x, bottom, 10);
 
-    m2_drawer.setColor(255, 255, 0, 150);
+    m2_drawer.setColor(255, 255, 0, 150); 
     m2_drawer.fillCircle(M_worldPositon.x, M_worldPositon.y, 50);
+    m2_drawer.setColor(155, 155, 0, 100);
+    m2_drawer.fillCircle(m_lastMousePos.x, m_lastMousePos.y, 50);
+
+    sf::Vector2 canvasPos = m_canvas->getPosition();
+    sf::Vector2 canvasSize = m_canvas->getSize();
+    if (m_outOfCanvas)
+    {
+        m2_drawer.setColor(255, 0, 0, 100);
+    }
+    else
+    {
+        m2_drawer.setColor(0, 255, 0, 100);
+    }
+    m2_drawer.fillRectangle(canvasPos.x - canvasSize.x * 0.5f, canvasPos.y - canvasSize.y * 0.5f,canvasSize.x,canvasSize.y);
 }

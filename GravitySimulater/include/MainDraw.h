@@ -62,6 +62,7 @@ private:
     sf::Vector2f M_worldPositon;
     bool m_hasFocus = false;
     bool m_imguiActive = false;
+    bool m_outOfCanvas = true;
 
     // »­²¼ÍÏ×§
     bool m_isDragging = false;

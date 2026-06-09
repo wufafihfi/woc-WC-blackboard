@@ -200,7 +200,10 @@ void MainUI::Render() {
                 showDrawToolsWindow = !showDrawToolsWindow;
             }
             if (ImGui::BeginMenu(u8"调试")) {
-                if (ImGui::MenuItem(u8"显示调试信息")) {
+                if (ImGui::MenuItem(u8"调试信息-画布")) {
+                    props.SetValue("MainDrawData", "showCanvasDebug", !props.GetValue<bool>("MainDrawData", "showCanvasDebug"));
+                }
+                if (ImGui::MenuItem(u8"调试信息-性能")) {
                     showInfo = !showInfo;
                 }
                 if (ImGui::MenuItem(u8"日志系统")) {
