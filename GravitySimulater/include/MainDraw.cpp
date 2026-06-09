@@ -44,13 +44,10 @@ void MainDraw::HandleEvent(const sf::Event& event) {
                 m_hasMoved = false;
             }
             else if (toolType == 2) {
-                // 橡皮模式：开始擦除前先保存当前状态
+                // 橡皮模式
                 m_isDrawing = true;
                 sf::Vector2f mouseCanvas = M_worldPositon - m_canvas->getPosition() + m_canvas->getSize() * 0.5f;
                 m_lastDrawPos = mouseCanvas;
-
-                // 关键：先保存擦除前的状态
-                saveToUndo();
 
                 // 然后执行擦除
                 eraseLinesAt(mouseCanvas, props.GetValue<float>("MainDrawData", "EraserSize") / 2.0f);
@@ -59,7 +56,7 @@ void MainDraw::HandleEvent(const sf::Event& event) {
         }
     }
 
-    // 鼠标移动 - 标记有移动
+    // 鼠标移动-标记
     if (const auto* mouseMoved = event.getIf<sf::Event::MouseMoved>()) {
         if (m_isLeftPressed && toolType == 1) {
             m_hasMoved = true;
@@ -172,14 +169,7 @@ void MainDraw::Render() {
 
     m_rview->applyTo(window);
 
-    m_canvas->beginDraw();
-    std::vector<float> bkColorVer = props.GetValue<std::vector<float>>("MainDrawData", "backGroundColor");
-    m_drawer->clear(
-        static_cast<std::uint8_t>(bkColorVer[0]),
-        static_cast<std::uint8_t>(bkColorVer[1]),
-        static_cast<std::uint8_t>(bkColorVer[2]),
-        static_cast<std::uint8_t>(bkColorVer[3])
-    );
+    //m_canvas->beginDraw();
 
     // 画线
     if (props.GetValue<bool>("MainDrawData", "undo_Flag"))
@@ -195,9 +185,17 @@ void MainDraw::Render() {
     if (m_needsUpdate) {
         rebuildVertexBuffer();
         m_needsUpdate = false;
-    }
-    if (!m_vertexBuffer.empty()) {
-        m_drawer->drawLinesFromVertices(m_vertexBuffer);
+        //}
+        std::vector<float> bkColorVer = props.GetValue<std::vector<float>>("MainDrawData", "backGroundColor");
+        m_drawer->clear(
+            static_cast<std::uint8_t>(bkColorVer[0]),
+            static_cast<std::uint8_t>(bkColorVer[1]),
+            static_cast<std::uint8_t>(bkColorVer[2]),
+            static_cast<std::uint8_t>(bkColorVer[3])
+        );
+        if (!m_vertexBuffer.empty()) {
+            m_drawer->drawLinesFromVertices(m_vertexBuffer);
+        }
     }
     BB_DrawLine();
     //LOG_INFO_STREAM << u8"线条数:" << m_lines.size();
@@ -206,7 +204,7 @@ void MainDraw::Render() {
 
     m_canvas->renderToWindow(window);
 
-    // 绘制光标指示器
+    // 绘制光标
     static SimpleDraw drawer_window(window);
     if (toolType == 2) {
         float eraserSize = props.GetValue<float>("MainDrawData", "EraserSize");
@@ -451,33 +449,36 @@ void MainDraw::eraseLinesAt(const sf::Vector2f& pos, float radius) {
 
     std::vector<bool> toDelete(m_lines.size(), false);
 
-    for (int key : keysToCheck) {
-        auto it = m_spatialIndex.find(key);
-        if (it != m_spatialIndex.end()) {
-            for (int idx : it->second) {
-                if (idx >= 0 && idx < (int)m_lines.size() && !toDelete[idx]) {
-                    const auto& line = m_lines[idx];
-                    if (lineIntersectsCircle(line.start, line.end, pos, radius)) {
-                        toDelete[idx] = true;
+    if(!toDelete.empty())
+    {
+        for (int key : keysToCheck) {
+            auto it = m_spatialIndex.find(key);
+            if (it != m_spatialIndex.end()) {
+                for (int idx : it->second) {
+                    if (idx >= 0 && idx < (int)m_lines.size() && !toDelete[idx]) {
+                        const auto& line = m_lines[idx];
+                        if (lineIntersectsCircle(line.start, line.end, pos, radius)) {
+                            toDelete[idx] = true;
+                        }
                     }
                 }
             }
         }
-    }
 
-    // 从后往前删除
-    bool anyDeleted = false;
-    for (int i = (int)m_lines.size() - 1; i >= 0; i--) {
-        if (toDelete[i]) {
-            m_lines.erase(m_lines.begin() + i);
-            anyDeleted = true;
+        // 从后往前删除
+        bool anyDeleted = false;
+        for (int i = (int)m_lines.size() - 1; i >= 0; i--) {
+            if (toDelete[i]) {
+                m_lines.erase(m_lines.begin() + i);
+                anyDeleted = true;
+            }
         }
-    }
 
-    if (anyDeleted) {
-        m_linesChanged = true;  // 标记有变化（关键：添加这行）
-        m_needsUpdate = true;
-        rebuildSpatialIndex();
+        if (anyDeleted) {
+            m_linesChanged = true;  // 标记有变化（关键：添加这行）
+            m_needsUpdate = true;
+            rebuildSpatialIndex();
+        }
     }
 }
 // 撤销恢复
